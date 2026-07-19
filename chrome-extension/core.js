@@ -15,7 +15,27 @@
   const log = (...a) => console.log(LOG_PREFIX, ...a);
   const warn = (...a) => console.warn(LOG_PREFIX, ...a);
 
-  window.__CLZS_CORE__ = function CLZSCore(httpGet) {
+  // 主世界时间读取器源码（供用户脚本注入；扩展通过 manifest 的 MAIN world 脚本注入）。
+  const TIME_MAIN_SRC =
+    "(function(){if(window.__clzsTimeMain)return;window.__clzsTimeMain=true;" +
+    "function pick(){var ps=document.querySelectorAll('mux-player, mux-video');" +
+    "for(var i=0;i<ps.length;i++){var ct=ps[i].currentTime;if(typeof ct==='number'&&isFinite(ct))return ct;}" +
+    "var best=null;(function walk(root){var list;try{list=root.querySelectorAll('*');}catch(e){return;}" +
+    "for(var j=0;j<list.length;j++){var el=list[j];if(el.tagName==='VIDEO'){var t=el.currentTime;" +
+    "if(isFinite(t)&&(best===null||t>best))best=t;}if(el.shadowRoot)walk(el.shadowRoot);}})(document);return best;}" +
+    "function loop(){try{var t=pick();if(t!=null)document.documentElement.setAttribute('data-clzs-ct',String(t));}catch(e){}" +
+    "requestAnimationFrame(loop);}requestAnimationFrame(loop);})();";
+
+  window.__CLZS_CORE__ = function CLZSCore(httpGet, opts) {
+    opts = opts || {};
+    if (opts.injectMain) {
+      try {
+        const s = document.createElement("script");
+        s.textContent = TIME_MAIN_SRC;
+        (document.head || document.documentElement).appendChild(s);
+        s.remove();
+      } catch (_) {}
+    }
     const STATE = {
       playbackId: null,
       mediaEl: null,
@@ -335,11 +355,40 @@
       if (STATE.statusLine) STATE.statusLine.textContent = txt;
     }
 
+    function collectVideos(root, acc) {
+      acc = acc || [];
+      let list;
+      try {
+        list = root.querySelectorAll("*");
+      } catch (_) {
+        return acc;
+      }
+      for (const el of list) {
+        if (el.tagName === "VIDEO") acc.push(el);
+        if (el.shadowRoot) collectVideos(el.shadowRoot, acc);
+      }
+      return acc;
+    }
+
     function currentTime() {
+      // 1) 主世界读取器写入的属性（隔离世界读不到自定义元素 currentTime，靠此跨世界）
+      const attr = document.documentElement.getAttribute("data-clzs-ct");
+      if (attr != null) {
+        const t = parseFloat(attr);
+        if (isFinite(t)) return t;
+      }
+      // 2) 直接属性（同世界时可用，如部分用户脚本环境）
+      let best = -1;
       const el = STATE.mediaEl;
-      if (!el) return 0;
-      if (typeof el.currentTime === "number") return el.currentTime;
-      return 0;
+      if (el && typeof el.currentTime === "number" && isFinite(el.currentTime))
+        best = el.currentTime;
+      // 3) 兜底：穿透 shadow DOM 取原生 <video> 的最大 currentTime
+      const root = el && el.shadowRoot ? el.shadowRoot : document;
+      for (const v of collectVideos(root, [])) {
+        const ct = v.currentTime;
+        if (typeof ct === "number" && isFinite(ct)) best = Math.max(best, ct);
+      }
+      return best < 0 ? 0 : best;
     }
 
     function findCueIdx(t) {

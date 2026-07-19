@@ -13,6 +13,13 @@
   "content_scripts": [
     {
       "matches": ["https://cursor.com/*", "https://www.cursor.com/*"],
+      "js": ["time-main.js"],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": false
+    },
+    {
+      "matches": ["https://cursor.com/*", "https://www.cursor.com/*"],
       "js": ["core.js", "content.js"],
       "run_at": "document_idle",
       "all_frames": false

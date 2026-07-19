@@ -23,7 +23,8 @@
   }
 
   if (typeof window.__CLZS_CORE__ === "function") {
-    window.__CLZS_CORE__(httpGet);
+    // 扩展通过 manifest 的 MAIN world 脚本 (time-main.js) 提供时间，无需再注入。
+    window.__CLZS_CORE__(httpGet, { injectMain: false });
   } else {
     console.error("[CLZS] core.js 未加载");
   }

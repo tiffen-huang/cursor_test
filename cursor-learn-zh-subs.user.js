@@ -72,13 +72,33 @@
   // ------------------------------------------------------------------
   // 共享核心逻辑（与扩展 content.js 保持一致）
   // ------------------------------------------------------------------
-  CLZSCore(gmGet);
+  CLZSCore(gmGet, { injectMain: true });
 
   // ==================================================================
   // 下面是与浏览器扩展共享的核心实现。为便于单文件分发，此处内联一份。
   // httpGet: (url) => Promise<string>
   // ==================================================================
-  function CLZSCore(httpGet) {
+  // 主世界时间读取器源码（用户脚本注入到页面主世界，跨世界写入 <html data-clzs-ct>）。
+  const TIME_MAIN_SRC =
+    "(function(){if(window.__clzsTimeMain)return;window.__clzsTimeMain=true;" +
+    "function pick(){var ps=document.querySelectorAll('mux-player, mux-video');" +
+    "for(var i=0;i<ps.length;i++){var ct=ps[i].currentTime;if(typeof ct==='number'&&isFinite(ct))return ct;}" +
+    "var best=null;(function walk(root){var list;try{list=root.querySelectorAll('*');}catch(e){return;}" +
+    "for(var j=0;j<list.length;j++){var el=list[j];if(el.tagName==='VIDEO'){var t=el.currentTime;" +
+    "if(isFinite(t)&&(best===null||t>best))best=t;}if(el.shadowRoot)walk(el.shadowRoot);}})(document);return best;}" +
+    "function loop(){try{var t=pick();if(t!=null)document.documentElement.setAttribute('data-clzs-ct',String(t));}catch(e){}" +
+    "requestAnimationFrame(loop);}requestAnimationFrame(loop);})();";
+
+  function CLZSCore(httpGet, opts) {
+    opts = opts || {};
+    if (opts.injectMain) {
+      try {
+        const s = document.createElement("script");
+        s.textContent = TIME_MAIN_SRC;
+        (document.head || document.documentElement).appendChild(s);
+        s.remove();
+      } catch (_) {}
+    }
     const STATE = {
       playbackId: null,
       mediaEl: null,
@@ -408,11 +428,37 @@
     }
 
     // ---------- 同步循环 ----------
+    function collectVideos(root, acc) {
+      acc = acc || [];
+      let list;
+      try {
+        list = root.querySelectorAll("*");
+      } catch (_) {
+        return acc;
+      }
+      for (const el of list) {
+        if (el.tagName === "VIDEO") acc.push(el);
+        if (el.shadowRoot) collectVideos(el.shadowRoot, acc);
+      }
+      return acc;
+    }
+
     function currentTime() {
+      const attr = document.documentElement.getAttribute("data-clzs-ct");
+      if (attr != null) {
+        const t = parseFloat(attr);
+        if (isFinite(t)) return t;
+      }
+      let best = -1;
       const el = STATE.mediaEl;
-      if (!el) return 0;
-      if (typeof el.currentTime === "number") return el.currentTime;
-      return 0;
+      if (el && typeof el.currentTime === "number" && isFinite(el.currentTime))
+        best = el.currentTime;
+      const root = el && el.shadowRoot ? el.shadowRoot : document;
+      for (const v of collectVideos(root, [])) {
+        const ct = v.currentTime;
+        if (typeof ct === "number" && isFinite(ct)) best = Math.max(best, ct);
+      }
+      return best < 0 ? 0 : best;
     }
 
     function findCueIdx(t) {
