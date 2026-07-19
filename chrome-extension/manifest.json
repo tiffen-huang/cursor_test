@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Cursor Learn 中文同步字幕",
+  "version": "1.0.0",
+  "description": "在 Cursor 官方教程站 (cursor.com/learn) 的英文视频正下方同步显示中文字幕：Mux 英文字幕 → 机翻中文 → 按播放进度实时同步。支持中英双语与重新翻译。",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "host_permissions": [
+    "https://*.mux.com/*",
+    "https://translate.googleapis.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://cursor.com/*", "https://www.cursor.com/*"],
+      "js": ["core.js", "content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ]
+}
