@@ -17,12 +17,14 @@
 1. 安装浏览器扩展 [Tampermonkey](https://www.tampermonkey.net/)（Chrome / Edge / Firefox 均可）。
 2. 点击下面的**一键安装**链接（Tampermonkey 会自动识别 `.user.js` 并弹出安装页）：
 
-   ```
-   https://raw.githubusercontent.com/<owner>/<public-repo>/<branch>/cursor-learn-zh-subs.user.js
-   ```
-
-   > 把 `<owner>/<public-repo>/<branch>` 替换成本仓库的实际路径。仓库合并到默认分支后，链接形如：
-   > `https://raw.githubusercontent.com/<owner>/<public-repo>/main/cursor-learn-zh-subs.user.js`
+   - 当前分支（立即可用）：
+     ```
+     https://raw.githubusercontent.com/tiffen-huang/cursor_test/cursor/learn-zh-subs-sync-7001/cursor-learn-zh-subs.user.js
+     ```
+   - 合并到默认分支 `main` 后（推荐长期使用）：
+     ```
+     https://raw.githubusercontent.com/tiffen-huang/cursor_test/main/cursor-learn-zh-subs.user.js
+     ```
 
 3. 打开任意课程页，例如 <https://cursor.com/cn/learn/how-ai-models-work>，视频下方会自动出现中文同步字幕。
 
