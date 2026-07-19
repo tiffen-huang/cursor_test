@@ -26,7 +26,10 @@
      https://raw.githubusercontent.com/tiffen-huang/cursor_test/main/cursor-learn-zh-subs.user.js
      ```
 
-3. 打开任意课程页，例如 <https://cursor.com/cn/learn/how-ai-models-work>，视频下方会自动出现中文同步字幕。
+3. **（Chrome/Edge 必做）启用「允许用户脚本」**：新版 Chrome/Edge 要求为 Tampermonkey 单独开启此权限，否则脚本不会运行（Tampermonkey 会在页面右上角提示「请启用『允许用户脚本』」）。
+   - 打开 `chrome://extensions`（Edge 为 `edge://extensions`）→ 打开右上角「开发者模式」。
+   - 点 Tampermonkey 的「详情 / Details」→ 打开「允许用户脚本 / Allow user scripts」开关。
+4. 打开任意课程页，例如 <https://cursor.com/cn/learn/how-ai-models-work>，视频下方会自动出现中文同步字幕。
 
 ### 方式 B：Chrome / Edge 扩展（MV3）
 
