@@ -69,13 +69,10 @@
     });
   }
 
-  // ------------------------------------------------------------------
-  // 共享核心逻辑（与扩展 content.js 保持一致）
-  // ------------------------------------------------------------------
-  CLZSCore(gmGet, { injectMain: true });
-
   // ==================================================================
   // 下面是与浏览器扩展共享的核心实现。为便于单文件分发，此处内联一份。
+  // 注意：核心逻辑的调用放在文件末尾，确保 TIME_MAIN_SRC 等 const 已完成初始化
+  //（避免暂时性死区 TDZ 报错）。
   // httpGet: (url) => Promise<string>
   // ==================================================================
   // 主世界时间读取器源码（用户脚本注入到页面主世界，跨世界写入 <html data-clzs-ct>）。
@@ -587,10 +584,23 @@
       const mediaEl = findMediaEl();
       const pid = detectPlaybackId(mediaEl);
       const key = location.pathname + "::" + (pid || "");
-      if (mediaEl && pid && key !== lastKey) {
-        lastKey = key;
-        log("初始化课程", pid);
-        start(false);
+      if (mediaEl && pid) {
+        if (key !== lastKey) {
+          lastKey = key;
+          log("初始化课程", pid);
+          start(false);
+        } else if (
+          STATE.running &&
+          STATE.cues.length &&
+          !document.getElementById("clzs-panel")
+        ) {
+          // 面板被页面重渲染移除，自动重新挂载
+          STATE.mediaEl = mediaEl;
+          if (mountPanel()) {
+            STATE.activeIdx = -2;
+            setStatus("已就绪 · " + STATE.cues.length + " 条");
+          }
+        }
       }
     }
 
@@ -611,4 +621,9 @@
 
     log("已启动");
   }
+
+  // ------------------------------------------------------------------
+  // 启动（放在所有声明之后，确保 const 均已初始化）
+  // ------------------------------------------------------------------
+  CLZSCore(gmGet, { injectMain: true });
 })();

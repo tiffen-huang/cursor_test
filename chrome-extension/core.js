@@ -513,10 +513,23 @@
       const mediaEl = findMediaEl();
       const pid = detectPlaybackId(mediaEl);
       const key = location.pathname + "::" + (pid || "");
-      if (mediaEl && pid && key !== lastKey) {
-        lastKey = key;
-        log("初始化课程", pid);
-        start(false);
+      if (mediaEl && pid) {
+        if (key !== lastKey) {
+          lastKey = key;
+          log("初始化课程", pid);
+          start(false);
+        } else if (
+          STATE.running &&
+          STATE.cues.length &&
+          !document.getElementById("clzs-panel")
+        ) {
+          // 面板被页面重渲染移除，自动重新挂载
+          STATE.mediaEl = mediaEl;
+          if (mountPanel()) {
+            STATE.activeIdx = -2;
+            setStatus("已就绪 · " + STATE.cues.length + " 条");
+          }
+        }
       }
     }
 
